@@ -98,7 +98,7 @@
 
 			ctx.rotate( flCurrentAngle );
 
-			ctx.lineWidth = this.GetTailWidth( t );
+			ctx.lineWidth = this.GetTailWidth( flTime, t );
 
 			ctx.moveTo( 0, 0 );
 			ctx.lineTo( flSegmentLength, 0 );
@@ -139,11 +139,11 @@
 
 	}
 
-	Tail.prototype.GetTailWidth = function( t ) {
+	Tail.prototype.GetTailWidth = function( flTime, t ) {
 
 		// Tail values are dynamic in case you want to get crazy
-		var rgTailWidthPoints = this.m_fnGetTailWidthPoints( t );
-		var rgTailWidthValues = this.m_fnGetTailWidthValues( t );
+		var rgTailWidthPoints = this.m_fnGetTailWidthPoints( flTime );
+		var rgTailWidthValues = this.m_fnGetTailWidthValues( flTime );
 
 		var i = CatUtils.BinarySearch( t, rgTailWidthPoints );
 
