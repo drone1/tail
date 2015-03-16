@@ -10,7 +10,7 @@
 		this.m_Canvas = document.getElementById( Options.canvas_id );
 		this.m_nRootX = Options.root_pos_x;
 		this.m_nRootY = Options.root_pos_y;
-		this.m_flBaseAngle = Options.base_angle;
+		this.m_flBaseAngle = CatUtils.DegreesToRadians( Options.base_angle );
 		this.m_cSegments = Math.max( 2, Options.segment_count );
 		this.m_flTailLengthPercentage = Options.tail_length;
 		this.m_flMaxAngle = Options.max_angle;
@@ -24,6 +24,7 @@
 		this.m_fnGetCurlynessValues = Options.get_curlyness_values_func;
 		this.m_fnFrantic = Options.frantic_func;
 
+		this.m_flNoiseBase = Math.random() * 10000;
 		this.m_bFirstFrame = true;
 
 		if ( this.m_rgTailWidthPoints.length !== this.m_rgTailWidthValues.length ) {
@@ -67,11 +68,11 @@
 		{
 			var t = i / this.m_cSegments;
 
-			var flNoise = this.m_Noise.noise( 10000 + flTime + t * .5, 100 );	// In [-1,1]
+			var flNoise = this.m_Noise.noise( this.m_flNoiseBase + 10000 + flTime + t * .5, 100 );	// In [-1,1]
 	
 			// This is how much we want the given angle to be weighed in, depending on which tail segment we're on. Angles towards the
 			// root have a greater influence on the movement.
-			var flCurly = this.GetCurlyness( flTime, t );	//this.LogIfFirstFrame( flCurly );
+			var flCurly = this.GetCurlyness( flTime, t );
 			var flFrantic = this.m_fnFrantic( flTime, t );
 			var flAbsoluteAngle = this.m_flBaseAngle + flCurly * CatUtils.DegreesToRadians( Math.sin( flTime + 2 * Math.PI * t * flNoise * flFrantic ) * this.m_flMaxAngle );
 
