@@ -17,8 +17,8 @@
 		this.m_strFillColor = Options.fill_color;
 		this.m_flStartWidth = Options.start_width;
 		this.m_flEndWidth = Options.end_width;
-		this.m_rgTailWidthPoints = Options.tail_width_points;
-		this.m_rgTailWidthValues = Options.tail_width_values;
+		this.m_fnGetTailWidthPoints = Options.get_tail_width_points;
+		this.m_fnGetTailWidthValues = Options.get_tail_width_values;
 		this.m_bCollideWithFloor = Options.collide_with_floor;
 		this.m_fnGetCurlynessPoints = Options.get_curlyness_points_func;
 		this.m_fnGetCurlynessValues = Options.get_curlyness_values_func;
@@ -27,10 +27,6 @@
 		this.m_flNoiseBase = Math.random() * 10000;
 		this.m_bFirstFrame = true;
 
-		if ( this.m_rgTailWidthPoints.length !== this.m_rgTailWidthValues.length ) {
-			console.log( "Error: These need to be the same size, and both sorted in ascending order." )
-		}
-		
 		this.m_Noise = new SimplexNoise(); 
 
 	}
@@ -60,10 +56,12 @@
 		var flLastAngle = 0;
 
 		// Make sure these values are sane. We need to do this check every frame since they're dynamic.
-		if ( this.m_fnGetCurlynessPoints( flTime ).length !== this.m_fnGetCurlynessValues( flTime ).length ) {
+		if ( this.m_fnGetCurlynessPoints( flTime ).length !== this.m_fnGetCurlynessValues( flTime ).length ||
+			 this.m_fnGetTailWidthPoints( flTime ).length !== this.m_fnGetTailWidthValues( flTime ).length )
+		{
 			console.log( "Error: These need to be the same size, and both sorted in ascending order." )
 		}
-
+		
 		for ( var i = 0; i < this.m_cSegments; ++i )
 		{
 			var t = i / this.m_cSegments;
@@ -143,13 +141,18 @@
 
 	Tail.prototype.GetTailWidth = function( t ) {
 
-		var i = CatUtils.BinarySearch( t, this.m_rgTailWidthPoints );
+		// Tail values are dynamic in case you want to get crazy
+		var rgTailWidthPoints = this.m_fnGetTailWidthPoints( t );
+		var rgTailWidthValues = this.m_fnGetTailWidthValues( t );
+
+		var i = CatUtils.BinarySearch( t, rgTailWidthPoints );
+
 		return CatUtils.Interpolate(
 			t,
-			this.m_rgTailWidthPoints[ i ],
-			this.m_rgTailWidthPoints[ i + 1 ],
-			this.m_rgTailWidthValues[ i ],
-			this.m_rgTailWidthValues[ i + 1 ]
+			rgTailWidthPoints[ i ],
+			rgTailWidthPoints[ i + 1 ],
+			rgTailWidthValues[ i ],
+			rgTailWidthValues[ i + 1 ]
 		);
 
 	}

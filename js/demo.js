@@ -30,8 +30,18 @@ window.onload = function() {
 
 		},
 
-		tail_width_points: [ 0, 0.8, 1 ],
-		tail_width_values: [ 45, 25, 12 ],
+		get_tail_width_points: function( flTime ) {
+
+			return [ 0, 0.8, 1 ];
+
+		},
+
+
+		get_tail_width_values: function( flTime ) {
+
+			return [ 45, 25, 12 ];
+
+		},
 
 		frantic_func: function( flTime, t ) {
 
