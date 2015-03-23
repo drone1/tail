@@ -15,6 +15,8 @@
 		this.m_flTailLengthPercentage = Options.tail_length;
 		this.m_flMaxAngle = Options.max_angle;
 		this.m_strFillColor = Options.fill_color;
+		this.m_strStrokeColor = Options.stroke_color;
+		this.m_flStrokeWidth = Options.stroke_width;
 		this.m_flStartWidth = Options.start_width;
 		this.m_flEndWidth = Options.end_width;
 		this.m_fnGetTailWidthPoints = Options.get_tail_width_points;
@@ -23,6 +25,7 @@
 		this.m_fnGetCurlynessPoints = Options.get_curlyness_points_func;
 		this.m_fnGetCurlynessValues = Options.get_curlyness_values_func;
 		this.m_fnFrantic = Options.frantic_func;
+		this.m_bAnimate = undefined !== Options.animate ? Options.animate : true;
 
 		this.m_flNoiseBase = Math.random() * 10000;
 		this.m_bFirstFrame = true;
@@ -36,83 +39,103 @@
 		var ctx = this.m_Canvas.getContext( '2d' );
 		ctx.save();
 
-		var flTime = CatUtils.GetTime();
+		var flTime = this.m_bAnimate ? CatUtils.GetTime() : 0;
 		var nWidth = this.m_Canvas.width;
 		var nHeight = this.m_Canvas.height;
+		var bDrawStroke = this.m_strStrokeColor && this.m_strStrokeColor.length && this.m_flStrokeWidth > 1.0;
 
 		ctx.clearRect ( 0 , 0 , nWidth, nHeight );
 
 		var flSegmentLength = nWidth / this.m_cSegments * this.m_flTailLengthPercentage;
 
-		ctx.beginPath();
 		ctx.lineCap = 'round';
-		ctx.translate( this.m_nRootX, this.m_nRootY );
-		ctx.strokeStyle = this.m_strFillColor;
-
-		// These are used to keep track of the transformation, since we can't access a context's transformation directly.
-		var flCurX = this.m_nRootX;
-		var flCurY = this.m_nRootY;
-
-		var flLastAngle = 0;
 
 		// Make sure these values are sane. We need to do this check every frame since they're dynamic.
 		if ( this.m_fnGetCurlynessPoints( flTime ).length !== this.m_fnGetCurlynessValues( flTime ).length ||
 			 this.m_fnGetTailWidthPoints( flTime ).length !== this.m_fnGetTailWidthValues( flTime ).length )
 		{
-			console.log( "Error: These need to be the same size, and both sorted in ascending order." )
+			console.error( "Error: These need to be the same size, and both sorted in ascending order." )
 		}
 		
-		for ( var i = 0; i < this.m_cSegments; ++i )
-		{
-			var t = i / this.m_cSegments;
+		var cPasses = bDrawStroke ? 2 : 1;
+		for ( var iPass = 0; iPass < cPasses; ++iPass ) {
 
-			var flNoise = this.m_Noise.noise( this.m_flNoiseBase + 10000 + flTime + t * .5, 100 );	// In [-1,1]
+			var bStrokePass = cPasses > 1 && 0 == iPass;
+			var flLastAngle = 0;
 	
-			// This is how much we want the given angle to be weighed in, depending on which tail segment we're on. Angles towards the
-			// root have a greater influence on the movement.
-			var flCurly = this.GetCurlyness( flTime, t );
-			var flFrantic = this.m_fnFrantic( flTime, t );
-			var flAbsoluteAngle = this.m_flBaseAngle + flCurly * CatUtils.DegreesToRadians( Math.sin( flTime + 2 * Math.PI * t * flNoise * flFrantic ) * this.m_flMaxAngle );
+			// These are used to keep track of the transformation, since we can't access a context's transformation directly.
+			var flCurX = this.m_nRootX;
+			var flCurY = this.m_nRootY;
 
-			var flNextX = flCurX + flSegmentLength * Math.cos( flAbsoluteAngle );
-			var flNextY = flCurY + flSegmentLength * Math.sin( flAbsoluteAngle );
+			ctx.save();
+			ctx.translate( this.m_nRootX, this.m_nRootY );
 
-			var bZeroOutAngles = false;
-			if ( this.m_bCollideWithFloor && flNextY > this.m_nRootY )
-			{
-				// This would go through the floor -- adjust. Note that this calculation is a pretty bad approximation
-				// and will look better with increasing segment counts.
-				flNextY = this.m_nRootY;
+			for ( var iSegment = 0; iSegment < this.m_cSegments; ++iSegment ) {
 
-				// Zero out angles for the entire rest of the tail for this frame
-				bZeroOutAngles = true;
+				var t = iSegment / this.m_cSegments;
+				var flTailWidth = this.GetTailWidth( flTime, t );
+				var flNoise = this.m_Noise.noise( this.m_flNoiseBase + 10000 + flTime + t * .5, 100 );	// In [-1,1]
+		
+				// This is how much we want the given angle to be weighed in, depending on which tail segment we're on. Angles towards the
+				// root have a greater influence on the movement.
+				var flCurly = this.GetCurlyness( flTime, t );
+				var flFrantic = this.m_fnFrantic( flTime, t );
+				var flAbsoluteAngle = this.m_flBaseAngle + flCurly * Math.min( CatUtils.DegreesToRadians( Math.sin( flTime + 2 * Math.PI * t * flNoise * flFrantic ) * this.m_flMaxAngle ), this.m_flMaxAngle );
+
+				var flNextX = flCurX + flSegmentLength * Math.cos( flAbsoluteAngle );
+				var flNextY = flCurY + flSegmentLength * Math.sin( flAbsoluteAngle );
+
+				var bZeroOutAngles = false;
+				if ( this.m_bCollideWithFloor && flNextY > this.m_nRootY )
+				{
+					// This would go through the floor -- adjust. Note that this calculation is a pretty bad approximation
+					// and will look better with increasing segment counts.
+					flNextY = this.m_nRootY;
+
+					// Zero out angles for the entire rest of the tail for this frame
+					bZeroOutAngles = true;
+				}
+
+				if ( bZeroOutAngles )
+				{
+					flAbsoluteAngle = 0;
+				}
+
+				var flCurrentAngle = flAbsoluteAngle - flLastAngle;
+				flLastAngle = flAbsoluteAngle;
+
+				ctx.rotate( flCurrentAngle );
+
+				var flLineWidth;
+				var strStrokeStyle;
+				if ( bStrokePass )
+				{
+					flLineWidth = flTailWidth * this.m_flStrokeWidth;
+					strStrokeStyle = this.m_strStrokeColor;
+				}
+				else
+				{
+					flLineWidth = flTailWidth;
+					strStrokeStyle = this.m_strFillColor;
+				}
+
+				ctx.lineWidth = flLineWidth;
+				ctx.strokeStyle = strStrokeStyle;
+				ctx.beginPath();
+				ctx.moveTo( 0, 0 );
+				ctx.lineTo( flSegmentLength, 0 );
+				ctx.stroke();
+
+				if ( iSegment < this.m_cSegments - 1 )
+				{
+					ctx.translate( flSegmentLength, 0 );
+				}
+
+				flCurX = flNextX;
+				flCurY = flNextY;
 			}
 
-			if ( bZeroOutAngles )
-			{
-				flAbsoluteAngle = 0;
-			}
-
-			var flCurrentAngle = flAbsoluteAngle - flLastAngle;
-			flLastAngle = flAbsoluteAngle;
-
-			ctx.rotate( flCurrentAngle );
-
-			ctx.lineWidth = this.GetTailWidth( flTime, t );
-
-			ctx.moveTo( 0, 0 );
-			ctx.lineTo( flSegmentLength, 0 );
-
-			ctx.stroke();
-			ctx.closePath();
-
-			if ( i < this.m_cSegments - 1 )
-			{
-				ctx.translate( flSegmentLength, 0 );
-			}
-
-			flCurX = flNextX;
-			flCurY = flNextY;
+			ctx.restore();
 		}
 
 		ctx.restore();

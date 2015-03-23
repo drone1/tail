@@ -9,12 +9,15 @@ window.onload = function() {
 		canvas_id: strCanvasID,
 		root_pos_x: nMiddleX / 4,
 		root_pos_y: nMiddleY,
-		tail_length: 0.4,	// Percentage of width
+		tail_length: 0.40,	// Percentage of width
 		base_angle: 0,	// Offset for all angles
-		segment_count: 50,
+		segment_count: 50,	// The more of these, the more costly tail.js will be, performance-wise
 		max_angle: 20,
 		fill_color: '#000',
+		//stroke_color: '#222',
+		//stroke_width: 1.2,	// Percentage of the current segment's width
 		collide_with_floor: true,
+		animate: true,	// Set this to false to disable animation
 
 		get_curlyness_points_func: function( flTime ) {
 
@@ -26,20 +29,21 @@ window.onload = function() {
 		get_curlyness_values_func: function( flTime ) {
 
 			// Corresponding values for each respective curlyness point along the tail
-			return [ 0, 2, 8, 5 ];
+			return [ 0, 2, 8, 9 ];
 
 		},
 
 		get_tail_width_points: function( flTime ) {
 
-			return [ 0, 0.8, 1 ];
+			// Percentages along the tail
+			return [ 0, 0.1, 0.80, 1 ];
 
 		},
 
-
 		get_tail_width_values: function( flTime ) {
 
-			return [ 45, 25, 12 ];
+			// Corresponding values for each respective width point along the tail
+			return [ 45, 40, 25, 15 ];
 
 		},
 
