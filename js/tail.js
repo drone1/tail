@@ -1,3 +1,7 @@
+/*
+ * Tail.js - v1.0
+ */
+
 (function( Root, fnFactory ) {
 
 	Root.Tail = fnFactory();
@@ -13,17 +17,17 @@
 		this.m_flBaseAngle = CatUtils.DegreesToRadians( Options.base_angle );
 		this.m_cSegments = Math.max( 2, Options.segment_count );
 		this.m_flTailLengthPercentage = Options.tail_length;
-		this.m_flMaxAngle = Options.max_angle;
 		this.m_strFillColor = Options.fill_color;
 		this.m_strStrokeColor = Options.stroke_color;
 		this.m_flStrokeWidth = Options.stroke_width;
 		this.m_flStartWidth = Options.start_width;
 		this.m_flEndWidth = Options.end_width;
-		this.m_fnGetTailWidthPoints = Options.get_tail_width_points;
-		this.m_fnGetTailWidthValues = Options.get_tail_width_values;
 		this.m_bCollideWithFloor = Options.collide_with_floor;
+		this.m_fnGetMaxAngle = Options.get_max_angle_func;
 		this.m_fnGetCurlynessPoints = Options.get_curlyness_points_func;
 		this.m_fnGetCurlynessValues = Options.get_curlyness_values_func;
+		this.m_fnGetTailWidthPoints = Options.get_tail_width_points;
+		this.m_fnGetTailWidthValues = Options.get_tail_width_values;
 		this.m_fnFrantic = Options.frantic_func;
 		this.m_bAnimate = undefined !== Options.animate ? Options.animate : true;
 
@@ -80,7 +84,8 @@
 				// root have a greater influence on the movement.
 				var flCurly = this.GetCurlyness( flTime, t );
 				var flFrantic = this.m_fnFrantic( flTime, t );
-				var flAbsoluteAngle = this.m_flBaseAngle + flCurly * Math.min( CatUtils.DegreesToRadians( Math.sin( flTime + 2 * Math.PI * t * flNoise * flFrantic ) * this.m_flMaxAngle ), this.m_flMaxAngle );
+				var flMaxAngle = this.m_fnGetMaxAngle( flTime, t );
+				var flAbsoluteAngle = this.m_flBaseAngle + flCurly * Math.min( CatUtils.DegreesToRadians( Math.sin( flTime + 2 * Math.PI * t * flNoise * flFrantic ) * flMaxAngle ), flMaxAngle );
 
 				var flNextX = flCurX + flSegmentLength * Math.cos( flAbsoluteAngle );
 				var flNextY = flCurY + flSegmentLength * Math.sin( flAbsoluteAngle );

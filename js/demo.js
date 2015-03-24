@@ -12,12 +12,15 @@ window.onload = function() {
 		tail_length: 0.40,	// Percentage of width
 		base_angle: 0,	// Offset for all angles
 		segment_count: 50,	// The more of these, the more costly tail.js will be, performance-wise
-		max_angle: 20,
 		fill_color: '#000',
-		//stroke_color: '#222',
-		//stroke_width: 1.2,	// Percentage of the current segment's width
-		collide_with_floor: true,
+		//stroke_color: '#222',	// Draw a stroke around the tail
+		//stroke_width: 1.2,	// Percentage of the current tail segment's width
+		collide_with_floor: true,	// Don't go below the root y plane
 		animate: true,	// Set this to false to disable animation
+
+		get_max_angle_func: function( flTime, t ) {
+			return 20;
+		},
 
 		get_curlyness_points_func: function( flTime ) {
 
