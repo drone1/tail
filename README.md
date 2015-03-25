@@ -1,3 +1,3 @@
-# tail
+# tail.js
 
-http://tailjs.net/
+View details and examples at http://tailjs.net/.
