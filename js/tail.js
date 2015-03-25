@@ -1,5 +1,5 @@
 /*
- * Tail.js - v1.01
+ * Tail.js - v1.02
  */
 
 (function( Root, fnFactory ) {
@@ -38,7 +38,18 @@
 
 	}
 
+	Tail.prototype.BIsVisible = function() {
+		var nCanvasTop = CatUtils.GetElementPositionInViewportSpace( this.m_Canvas ).y;
+		var nWindowHeight = Math.max( document.documentElement.clientHeight, window.innerHeight || 0 );
+		var nScrollPos = window.pageYOffset;
+
+		return !( nCanvasTop > nScrollPos + nWindowHeight ) && !( nCanvasTop + this.m_Canvas.height < 0 );
+	}
+
 	Tail.prototype.Render = function() {
+
+		if ( !this.BIsVisible() )
+			return;
 
 		var ctx = this.m_Canvas.getContext( '2d' );
 		ctx.save();
@@ -203,6 +214,23 @@ var CatUtils = {
 	GetTime: function() {
 
 		return ( new Date().getTime() / 1000 );
+
+	},
+
+	// This returns the position relative to the viewport, so if Elem is not on screen (above the top of the viewport),
+	// the resultant 'y' value will be negative.
+	GetElementPositionInViewportSpace: function( Elem ) {
+
+		var xPosition = 0;
+		var yPosition = 0;
+
+		while( Elem ) {
+			xPosition += ( Elem.offsetLeft - Elem.scrollLeft + Elem.clientLeft );
+			yPosition += ( Elem.offsetTop - Elem.scrollTop + Elem.clientTop );
+			Elem = Elem.offsetParent;
+		}
+
+		return { x: xPosition, y: yPosition };
 
 	},
 
