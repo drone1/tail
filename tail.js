@@ -1,12 +1,12 @@
 /*
- * Tail.js - v1.02
+ * Tail.js - v1.03
  */
 
 (function( Root, fnFactory ) {
 
 	Root.Tail = fnFactory();
 
-} ( this, function() {
+} ( window, function() {
 	'use strict';
 
 	function Tail( Options ) {
