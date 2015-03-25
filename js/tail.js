@@ -1,5 +1,5 @@
 /*
- * Tail.js - v1.0
+ * Tail.js - v1.01
  */
 
 (function( Root, fnFactory ) {
