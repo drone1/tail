@@ -1,5 +1,5 @@
 /*
- * Tail.js - v1.05
+ * Tail.js - v1.07
  */
 
 (function( Root, fnFactory ) {
@@ -22,10 +22,11 @@
 		this.m_bCollideWithFloor = Options.collide_with_floor !== undefined ? Options.collide_with_floor : true;
 		this.m_fnGetBaseAngle = Options.get_base_angle_func !== undefined ? Options.get_base_angle_func : this.GetBaseAngle_DefaultImpl_;
 		this.m_fnGetMaxAngle = Options.get_max_angle_func !== undefined ? Options.get_max_angle_func : this.GetMaxAngle_DefaultImpl_;
+		this.m_fnGetPhase = Options.get_phase_func !== undefined ? Options.get_phase_func : this.GetPhase_DefaultImpl_;
 		this.m_fnGetCurlynessPoints = Options.get_curlyness_points_func !== undefined ? Options.get_curlyness_points_func : this.GetCurlynessPoints_DefaultImpl_;
 		this.m_fnGetCurlynessValues = Options.get_curlyness_values_func !== undefined ? Options.get_curlyness_values_func : this.GetCurlynessValues_DefaultImpl_;
-		this.m_fnGetTailWidthPoints = Options.get_tail_width_points !== undefined ? Options.get_tail_width_points : this.GetTailWidthPoints_DefaultImpl_;
-		this.m_fnGetTailWidthValues = Options.get_tail_width_values !== undefined ? Options.get_tail_width_values : this.GetTailWidthValues_DefaultImpl_;
+		this.m_fnGetTailWidthPoints = Options.get_tail_width_points_func !== undefined ? Options.get_tail_width_points_func : this.GetTailWidthPoints_DefaultImpl_;
+		this.m_fnGetTailWidthValues = Options.get_tail_width_values_func !== undefined ? Options.get_tail_width_values_func : this.GetTailWidthValues_DefaultImpl_;
 		this.m_fnFrantic = Options.frantic_func !== undefined ? Options.frantic_func : this.GetFrantic_DefaultImpl_;
 		this.m_bAnimate = Options.animate !== undefined ? Options.animate : true;
 
@@ -34,19 +35,23 @@
 
 		this.m_Noise = new SimplexNoise(); 
 
+		if ( !this.m_Canvas )
+		{
+			console.error( "Canvas with ID '" + Options.canvas_id + "' not found!" );
+		}
+
 	}
 
 	Tail.prototype.BIsVisible = function() {
 
-		var nCanvasTop = CatUtils.GetElementPositionInViewportSpace( this.m_Canvas ).y;
-		var nWindowHeight = Math.max( document.documentElement.clientHeight, window.innerHeight || 0 );
-		var nScrollPos = window.pageYOffset;
-
-		return !( nCanvasTop > nScrollPos + nWindowHeight ) && !( nCanvasTop + this.m_Canvas.height < 0 );
+		return CatUtils.BIsInViewport( this.m_Canvas );
 
 	}
 
 	Tail.prototype.Render = function() {
+
+		if ( !this.m_Canvas )
+			return;
 
 		if ( !this.BIsVisible() )
 			return;
@@ -88,15 +93,15 @@
 			for ( var iSegment = 0; iSegment < this.m_cSegments; ++iSegment ) {
 
 				var t = iSegment / this.m_cSegments;
-				var flTailWidth = this.GetTailWidth( flTime, t );
+				var flTailWidth = this.GetTailWidth_( flTime, t );
 				var flNoise = this.m_Noise.noise( this.m_flNoiseBase + 10000 + flTime + t * .5, 100 );	// In [-1,1]
 		
 				// This is how much we want the given angle to be weighed in, depending on which tail segment we're on. Angles towards the
 				// root have a greater influence on the movement.
-				var flCurly = this.GetCurlyness( flTime, t );
+				var flCurly = this.GetCurlyness_( flTime, t );
 				var flFrantic = this.m_fnFrantic( flTime, t );
 				var flMaxAngle = this.m_fnGetMaxAngle( flTime, t );
-				var flAbsoluteAngle = CatUtils.DegreesToRadians( this.m_fnGetBaseAngle( flTime ) ) + flCurly * Math.min( CatUtils.DegreesToRadians( Math.sin( flTime + 2 * Math.PI * t * flNoise * flFrantic ) * flMaxAngle ), flMaxAngle );
+				var flAbsoluteAngle = CatUtils.DegreesToRadians( this.m_fnGetBaseAngle( flTime ) ) + flCurly * Math.min( CatUtils.DegreesToRadians( Math.sin( this.m_fnGetPhase( flTime, t ) + flTime + 2 * Math.PI * t * flNoise * flFrantic ) * flMaxAngle ), flMaxAngle );
 
 				var flNextX = flCurX + flSegmentLength * Math.cos( flAbsoluteAngle );
 				var flNextY = flCurY + flSegmentLength * Math.sin( flAbsoluteAngle );
@@ -160,9 +165,11 @@
 
 	}
 
-	Tail.prototype.GetCurlyness = function( flTime, t ) {
+	Tail.prototype.GetCurlyness_ = function( flTime, t ) {
 
 		// Curlyness points and values are dynamic
+		// NOTE: We don't need to call these for every segment, but we do, because a callback can still change its result
+		// per segment with Math.random(), etc, which can be really cool looking.
 		var rgCurlynessPoints = this.m_fnGetCurlynessPoints( flTime );
 		var rgCurlynessValues = this.m_fnGetCurlynessValues( flTime );
 
@@ -178,9 +185,11 @@
 
 	}
 
-	Tail.prototype.GetTailWidth = function( flTime, t ) {
+	Tail.prototype.GetTailWidth_ = function( flTime, t ) {
 
 		// Tail values are dynamic in case you want to get crazy
+		// NOTE: We don't need to call these for every segment, but we do, because a callback can still change its result
+		// per segment with Math.random(), etc, which can be really cool looking.
 		var rgTailWidthPoints = this.m_fnGetTailWidthPoints( flTime );
 		var rgTailWidthValues = this.m_fnGetTailWidthValues( flTime );
 
@@ -208,6 +217,7 @@
 	// Private, default implementations for functions
 	Tail.prototype.GetBaseAngle_DefaultImpl_ = function( flTime ) { return 0; }
 	Tail.prototype.GetMaxAngle_DefaultImpl_ = function( flTime, t ) { return 20; }
+	Tail.prototype.GetPhase_DefaultImpl_ = function( flTime, t ) { return this.m_flNoiseBase; }	// Returns a unique offset for this tail instance
 	Tail.prototype.GetCurlynessPoints_DefaultImpl_ = function( flTime ) { return [ 0, 0.50, 0.85, 1 ];  }
 	Tail.prototype.GetCurlynessValues_DefaultImpl_ = function( flTime ) { return [ 0, 2, 8, 9 ]; }
 	Tail.prototype.GetTailWidthPoints_DefaultImpl_ = function( flTime ) { return [ 0, 0.1, 0.8, 1 ]; }
@@ -226,20 +236,18 @@ var CatUtils = {
 
 	},
 
-	// This returns the position relative to the viewport, so if Elem is not on screen (above the top of the viewport),
-	// the resultant 'y' value will be negative.
-	GetElementPositionInViewportSpace: function( Elem ) {
+	BIsInViewport: function ( Elem ) {
 
-		var xPosition = 0;
-		var yPosition = 0;
+		var nWindowWidth = window.innerWidth || document.documentElement.clientWidth;
+		var nWindowHeight = window.innerHeight || document.documentElement.clientHeight;
 
-		while( Elem ) {
-			xPosition += ( Elem.offsetLeft - Elem.scrollLeft + Elem.clientLeft );
-			yPosition += ( Elem.offsetTop - Elem.scrollTop + Elem.clientTop );
-			Elem = Elem.offsetParent;
-		}
+		var rect = Elem.getBoundingClientRect();
 
-		return { x: xPosition, y: yPosition };
+		// Returns true for an element which goes outside of the viewport but has some portion of itself within the viewport.
+		return rect.bottom >= 0 &&
+			rect.top <= nWindowHeight &&
+			rect.right >= 0 &&
+			rect.left <= nWindowWidth;
 
 	},
 
