@@ -1,5 +1,5 @@
 /*
- * Tail.js - v1.03
+ * Tail.js - v1.05
  */
 
 (function( Root, fnFactory ) {
@@ -12,24 +12,22 @@
 	function Tail( Options ) {
 
 		this.m_Canvas = document.getElementById( Options.canvas_id );
-		this.m_nRootX = Options.root_pos_x;
-		this.m_nRootY = Options.root_pos_y;
-		this.m_flBaseAngle = CatUtils.DegreesToRadians( Options.base_angle );
-		this.m_cSegments = Math.max( 2, Options.segment_count );
-		this.m_flTailLengthPercentage = Options.tail_length;
-		this.m_strFillColor = Options.fill_color;
-		this.m_strStrokeColor = Options.stroke_color;
-		this.m_flStrokeWidth = Options.stroke_width;
-		this.m_flStartWidth = Options.start_width;
-		this.m_flEndWidth = Options.end_width;
-		this.m_bCollideWithFloor = Options.collide_with_floor;
-		this.m_fnGetMaxAngle = Options.get_max_angle_func;
-		this.m_fnGetCurlynessPoints = Options.get_curlyness_points_func;
-		this.m_fnGetCurlynessValues = Options.get_curlyness_values_func;
-		this.m_fnGetTailWidthPoints = Options.get_tail_width_points;
-		this.m_fnGetTailWidthValues = Options.get_tail_width_values;
-		this.m_fnFrantic = Options.frantic_func;
-		this.m_bAnimate = undefined !== Options.animate ? Options.animate : true;
+		this.m_nRootX = Options.root_pos_x !== undefined ? Options.root_pos_x : 0;
+		this.m_nRootY = Options.root_pos_y !== undefined ? Options.root_pos_y : this.m_Canvas.height / 2;
+		this.m_cSegments = Math.max( 2, Options.segment_count !== undefined ? Options.segment_count : 70 );
+		this.m_flTailLengthPercentage = Options.tail_length !== undefined ? Options.tail_length : 0.5;
+		this.m_strFillColor = Options.fill_color !== undefined ? Options.fill_color : 'black';
+		this.m_strStrokeColor = Options.stroke_color !== undefined ? Options.stroke_color : null;
+		this.m_flStrokeWidth = Options.stroke_width !== undefined ? Options.stroke_width : 0;
+		this.m_bCollideWithFloor = Options.collide_with_floor !== undefined ? Options.collide_with_floor : true;
+		this.m_fnGetBaseAngle = Options.get_base_angle_func !== undefined ? Options.get_base_angle_func : this.GetBaseAngle_DefaultImpl_;
+		this.m_fnGetMaxAngle = Options.get_max_angle_func !== undefined ? Options.get_max_angle_func : this.GetMaxAngle_DefaultImpl_;
+		this.m_fnGetCurlynessPoints = Options.get_curlyness_points_func !== undefined ? Options.get_curlyness_points_func : this.GetCurlynessPoints_DefaultImpl_;
+		this.m_fnGetCurlynessValues = Options.get_curlyness_values_func !== undefined ? Options.get_curlyness_values_func : this.GetCurlynessValues_DefaultImpl_;
+		this.m_fnGetTailWidthPoints = Options.get_tail_width_points !== undefined ? Options.get_tail_width_points : this.GetTailWidthPoints_DefaultImpl_;
+		this.m_fnGetTailWidthValues = Options.get_tail_width_values !== undefined ? Options.get_tail_width_values : this.GetTailWidthValues_DefaultImpl_;
+		this.m_fnFrantic = Options.frantic_func !== undefined ? Options.frantic_func : this.GetFrantic_DefaultImpl_;
+		this.m_bAnimate = Options.animate !== undefined ? Options.animate : true;
 
 		this.m_flNoiseBase = Math.random() * 10000;
 		this.m_bFirstFrame = true;
@@ -39,11 +37,13 @@
 	}
 
 	Tail.prototype.BIsVisible = function() {
+
 		var nCanvasTop = CatUtils.GetElementPositionInViewportSpace( this.m_Canvas ).y;
 		var nWindowHeight = Math.max( document.documentElement.clientHeight, window.innerHeight || 0 );
 		var nScrollPos = window.pageYOffset;
 
 		return !( nCanvasTop > nScrollPos + nWindowHeight ) && !( nCanvasTop + this.m_Canvas.height < 0 );
+
 	}
 
 	Tail.prototype.Render = function() {
@@ -96,7 +96,7 @@
 				var flCurly = this.GetCurlyness( flTime, t );
 				var flFrantic = this.m_fnFrantic( flTime, t );
 				var flMaxAngle = this.m_fnGetMaxAngle( flTime, t );
-				var flAbsoluteAngle = this.m_flBaseAngle + flCurly * Math.min( CatUtils.DegreesToRadians( Math.sin( flTime + 2 * Math.PI * t * flNoise * flFrantic ) * flMaxAngle ), flMaxAngle );
+				var flAbsoluteAngle = CatUtils.DegreesToRadians( this.m_fnGetBaseAngle( flTime ) ) + flCurly * Math.min( CatUtils.DegreesToRadians( Math.sin( flTime + 2 * Math.PI * t * flNoise * flFrantic ) * flMaxAngle ), flMaxAngle );
 
 				var flNextX = flCurX + flSegmentLength * Math.cos( flAbsoluteAngle );
 				var flNextY = flCurY + flSegmentLength * Math.sin( flAbsoluteAngle );
@@ -204,6 +204,15 @@
 			console.log( s );
 
 	}
+
+	// Private, default implementations for functions
+	Tail.prototype.GetBaseAngle_DefaultImpl_ = function( flTime ) { return 0; }
+	Tail.prototype.GetMaxAngle_DefaultImpl_ = function( flTime, t ) { return 20; }
+	Tail.prototype.GetCurlynessPoints_DefaultImpl_ = function( flTime ) { return [ 0, 0.50, 0.85, 1 ];  }
+	Tail.prototype.GetCurlynessValues_DefaultImpl_ = function( flTime ) { return [ 0, 2, 8, 9 ]; }
+	Tail.prototype.GetTailWidthPoints_DefaultImpl_ = function( flTime ) { return [ 0, 0.1, 0.8, 1 ]; }
+	Tail.prototype.GetTailWidthValues_DefaultImpl_ = function( flTime ) { return [ 45, 40, 25, 15 ]; }
+	Tail.prototype.GetFrantic_DefaultImpl_ = function( flTime, t ) { return .03 + t * ( .5 + .5 * Math.sin( .3 * flTime ) ) * .15; }
 
 	return Tail;
 }));
